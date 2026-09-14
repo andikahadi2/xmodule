@@ -1,3 +1,5 @@
+import time
+
 import httpx
 
 from app.core.config import settings
@@ -37,5 +39,7 @@ class OpenRouterProvider(AIProvider):
                 return data["choices"][0]["message"]["content"]
             except (httpx.HTTPError, KeyError, IndexError) as exc:
                 last_error = exc
+                if attempt < self.max_retries:
+                    time.sleep(2**attempt)
 
         raise AIProviderError(f"OpenRouter request failed: {last_error}") from last_error

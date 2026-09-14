@@ -10,7 +10,7 @@ from app.utils import ffmpeg
 from app.utils.subtitle import generate_srt
 
 
-def generate_video(db: Session, content: Content) -> Video:
+def create_pending_video(db: Session, content: Content) -> Video:
     if not content.media_assets:
         raise ValueError("Content has no media assets; run generate_media first")
     if not content.audio_assets:
@@ -18,6 +18,15 @@ def generate_video(db: Session, content: Content) -> Video:
     if not content.scripts:
         raise ValueError("Content has no script; run generate_script first")
 
+    video = Video(content_id=content.id, status="processing", width=settings.default_video_width, height=settings.default_video_height)
+    db.add(video)
+    db.commit()
+    db.refresh(video)
+    return video
+
+
+def render_video(db: Session, video: Video) -> Video:
+    content = video.content
     audio = content.audio_assets[-1]
     script = content.scripts[-1]
     image_paths = [asset.file_path for asset in content.media_assets]
@@ -26,11 +35,6 @@ def generate_video(db: Session, content: Content) -> Video:
     videos_dir.mkdir(parents=True, exist_ok=True)
     temp_dir = Path(settings.storage_path) / "temp"
     temp_dir.mkdir(parents=True, exist_ok=True)
-
-    video = Video(content_id=content.id, status="processing", width=settings.default_video_width, height=settings.default_video_height)
-    db.add(video)
-    db.commit()
-    db.refresh(video)
 
     subtitle_path = temp_dir / f"{content.id}_{uuid.uuid4().hex}.srt"
     srt_content = generate_srt(script.script_text, audio.duration)

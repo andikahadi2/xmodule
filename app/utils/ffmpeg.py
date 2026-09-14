@@ -15,28 +15,35 @@ def _ffprobe_path() -> str:
 
 
 def run(args: list[str], timeout: float = 120.0) -> None:
-    result = subprocess.run(
-        [settings.ffmpeg_path, "-y", *args],
-        capture_output=True,
-        text=True,
-        timeout=timeout,
-    )
+    try:
+        result = subprocess.run(
+            [settings.ffmpeg_path, "-y", *args],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise FFmpegError(f"ffmpeg timed out after {timeout}s") from exc
     if result.returncode != 0:
         raise FFmpegError(result.stderr[-2000:])
 
 
-def probe_duration_seconds(path: str) -> float:
-    result = subprocess.run(
-        [
-            _ffprobe_path(),
-            "-v", "error",
-            "-show_entries", "format=duration",
-            "-of", "default=noprint_wrappers=1:nokey=1",
-            path,
-        ],
-        capture_output=True,
-        text=True,
-    )
+def probe_duration_seconds(path: str, timeout: float = 30.0) -> float:
+    try:
+        result = subprocess.run(
+            [
+                _ffprobe_path(),
+                "-v", "error",
+                "-show_entries", "format=duration",
+                "-of", "default=noprint_wrappers=1:nokey=1",
+                path,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise FFmpegError(f"ffprobe timed out after {timeout}s") from exc
     try:
         return float(result.stdout.strip())
     except ValueError:

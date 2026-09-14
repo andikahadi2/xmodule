@@ -13,3 +13,4 @@ storage/clips/*
 !storage/**/.gitkeep
 .pytest_cache/
 *.egg-info/
+.claude/

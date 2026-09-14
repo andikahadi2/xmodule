@@ -1,3 +1,4 @@
+import logging
 import uuid
 from pathlib import Path
 
@@ -10,6 +11,8 @@ from app.clipper.schemas.clip import ClipJobOut
 from app.clipper.services import clip_service
 from app.core.config import settings
 from app.core.database import get_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/clipper", tags=["clipper"])
 
@@ -64,6 +67,14 @@ def _process_job_in_background(job_id: int) -> None:
         job = db.get(ClipJob, job_id)
         if job is not None:
             clip_service.process_job(db, job)
+    except Exception:
+        logger.exception("Unhandled error processing clip job %s in background", job_id)
+        db.rollback()
+        job = db.get(ClipJob, job_id)
+        if job is not None and job.status not in ("failed", "completed", "completed_with_errors"):
+            job.status = "failed"
+            job.error = "Internal error during processing; check server logs"
+            db.commit()
     finally:
         db.close()
 

@@ -23,6 +23,29 @@
   <a href="/" class="btn btn-secondary">← Kembali ke Home</a>
 </div>
 
+{% if request.query_params.get('connected') %}
+  <div class="card" style="border-color: var(--success); background: var(--success-bg); margin-bottom: 16px; padding: 14px 18px; font-size: 14px;">
+    ✅ Akun TikTok berhasil terhubung.
+  </div>
+{% elif request.query_params.get('connect_error') %}
+  <div class="card" style="border-color: var(--error); background: var(--error-bg); margin-bottom: 16px; padding: 14px 18px; font-size: 14px;">
+    ⚠️ Gagal menghubungkan akun: {{ request.query_params.get('connect_error') }}
+  </div>
+{% endif %}
+
+<div class="card" style="margin-bottom: 20px;">
+  <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; flex-wrap: wrap;">
+    <div>
+      <h2 style="font-size: 16px;">Akun Sosial Media</h2>
+      <p style="color: var(--text-muted); font-size: 13px; margin: 4px 0 0;">Hubungkan akun TikTok untuk publish video ke draft/inbox setelah di-approve.</p>
+    </div>
+    <a href="/api/social/tiktok/connect" class="btn btn-primary">🎵 Connect TikTok</a>
+  </div>
+  <div id="social-accounts-wrap" hx-get="/api/social/accounts/render" hx-trigger="load" hx-swap="innerHTML">
+    <div style="color: var(--text-faint); font-size: 13px;">Memuat akun terhubung…</div>
+  </div>
+</div>
+
 <div class="card">
   <form class="form-grid" hx-post="/products" hx-target="#product-rows" hx-swap="outerHTML" hx-on::after-request="this.reset()">
     <div class="field">

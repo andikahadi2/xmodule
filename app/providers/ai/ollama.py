@@ -1,3 +1,5 @@
+import time
+
 import httpx
 
 from app.core.config import settings
@@ -30,5 +32,7 @@ class OllamaProvider(AIProvider):
                 return resp.json()["response"]
             except (httpx.HTTPError, KeyError) as exc:
                 last_error = exc
+                if attempt < self.max_retries:
+                    time.sleep(2**attempt)
 
         raise AIProviderError(f"Ollama request failed: {last_error}") from last_error

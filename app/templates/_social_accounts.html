@@ -1,0 +1,21 @@
+<div id="social-accounts-list" style="display: flex; flex-wrap: wrap; gap: 12px;">
+  {% for account in accounts %}
+    <div class="card" id="social-account-{{ account.id }}" style="display: flex; align-items: center; gap: 12px; padding: 12px 16px; flex: 0 0 auto;">
+      {% if account.avatar_url %}
+        <img src="{{ account.avatar_url }}" alt="" style="width: 36px; height: 36px; border-radius: 50%; object-fit: cover;">
+      {% else %}
+        <div style="width: 36px; height: 36px; border-radius: 50%; background: var(--bg-elevated); display: flex; align-items: center; justify-content: center; font-size: 16px;">🎵</div>
+      {% endif %}
+      <div>
+        <div style="font-size: 13px; font-weight: 600;">{{ account.display_name }}</div>
+        <div style="font-size: 12px; color: var(--text-faint); text-transform: capitalize;">{{ account.platform }} · {{ account.status }}</div>
+      </div>
+      <button class="btn btn-danger" style="padding: 6px 12px; font-size: 12px;"
+              hx-delete="/api/social/accounts/{{ account.id }}"
+              hx-target="#social-account-{{ account.id }}" hx-swap="outerHTML"
+              hx-confirm="Putuskan koneksi akun ini?">Putuskan</button>
+    </div>
+  {% else %}
+    <div style="color: var(--text-faint); font-size: 14px;">Belum ada akun TikTok terhubung.</div>
+  {% endfor %}
+</div>

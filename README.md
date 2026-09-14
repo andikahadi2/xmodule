@@ -4,6 +4,8 @@ Phase 1: project setup, PostgreSQL, Product CRUD, dashboard sederhana.
 Phase 2: AI provider abstraction (OpenRouter, Ollama), Content Idea Generator, Script Generator.
 Phase 3: Image provider (Pexels/local), TTS (Edge TTS), FFmpeg video generator, subtitle (SRT) —
 menghasilkan video 9:16 lengkap dari product sampai file MP4.
+Phase 5 (sebagian): TikTok Content Posting API (OAuth connect + publish ke Inbox/Draft, bukan
+auto-publish) — lihat bagian "Connect TikTok" di bawah.
 
 Module tambahan (`app/clipper/`, terpisah dari affiliate engine di atas): **Clipper** — upload video
 sendiri, potong otomatis per durasi tetap, auto-caption (speech-to-text), opsional reformat ke 9:16.
@@ -25,6 +27,9 @@ Hanya menerima file upload manual — tidak ada fitur download dari URL/platform
    pexels.com/api). Pastikan `ffmpeg`/`ffprobe` ada di PATH atau set `FFMPEG_PATH` ke lokasi
    `ffmpeg.exe`. Untuk module Clipper: model faster-whisper "small" ter-download otomatis saat
    pertama kali dipakai (butuh koneksi internet sekali di awal, lalu tersimpan di cache lokal).
+   Untuk Connect TikTok: daftar app di developers.tiktok.com (produk "Content Posting API"), isi
+   `TIKTOK_CLIENT_KEY`/`TIKTOK_CLIENT_SECRET`, dan set `APP_BASE_URL` ke URL publik server ini
+   (redirect URI yang didaftarkan di TikTok = `{APP_BASE_URL}/api/social/tiktok/callback`).
 
 3. Buat database (jika belum ada), lalu jalankan migration:
 
@@ -44,11 +49,23 @@ Hanya menerima file upload manual — tidak ada fitur download dari URL/platform
    - Generate script dari ide terpilih: `POST /api/contents/{content_id}/generate-script`
    - Generate media (gambar): `POST /api/contents/{content_id}/generate-media`
    - Generate audio (voice-over): `POST /api/contents/{content_id}/generate-audio`
-   - Generate video final (MP4 9:16): `POST /api/contents/{content_id}/generate-video`
+   - Generate video final (MP4 9:16), berjalan async di background: `POST /api/contents/{content_id}/generate-video`
+     — response langsung (202) berisi video row berstatus `processing`; poll `GET /api/contents/{content_id}`
+     atau video endpoint sampai status jadi `ready` (atau `failed` + `error`).
    - Lihat konten: `GET /api/contents`, `GET /api/contents/{content_id}`
 
    Urutan pipeline penuh: `generate-ideas` → `generate-script` → `generate-media` →
    `generate-audio` → `generate-video`. Hasil video tersimpan di `storage/videos/`.
+
+   **Connect TikTok & publish** (halaman `/affiliate`, tombol "Connect TikTok"):
+   - `GET /api/social/tiktok/connect` — redirect user ke halaman consent TikTok
+   - `GET /api/social/tiktok/callback` — dipanggil TikTok setelah user setuju, simpan token
+   - `GET /api/social/accounts` — daftar akun terhubung
+   - `DELETE /api/social/accounts/{id}` — putuskan koneksi
+   - `POST /api/contents/videos/{video_id}/approve` — approve video (wajib sebelum publish,
+     video harus berstatus `ready`)
+   - `POST /api/contents/videos/{video_id}/publish/{account_id}` — kirim video ke Inbox/Draft
+     TikTok akun tsb (bukan auto-publish — user tetap harus buka app TikTok untuk post akhir)
 
    **Clipper module** (upload & potong video sendiri):
    - Upload + proses (async di background): `POST /api/clipper/jobs` (multipart form-data:
@@ -75,6 +92,8 @@ Hanya menerima file upload manual — tidak ada fitur download dari URL/platform
   `PexelsProvider` fallback)
 - `app/providers/tts` — TTS abstraction (`CloudTTSProvider` pakai Edge TTS gratis; `LocalTTSProvider`
   belum diimplementasi)
+- `app/providers/social` — social media provider abstraction (`TikTokProvider` pakai OAuth v2 +
+  Content Posting API Inbox mode — publish ke draft, bukan langsung live)
 - `app/utils/ffmpeg.py` — pembungkus subprocess FFmpeg (video generator + probe durasi + extract
   segment, dipakai affiliate engine maupun clipper)
 - `app/utils/subtitle.py` — generate SRT dari script + durasi audio

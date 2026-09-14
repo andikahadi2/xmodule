@@ -27,5 +27,9 @@ class Settings(BaseSettings):
 
     ffmpeg_path: str = "ffmpeg"
 
+    tiktok_client_key: str = ""
+    tiktok_client_secret: str = ""
+    app_base_url: str = "http://localhost:8000"
+
 
 settings = Settings()

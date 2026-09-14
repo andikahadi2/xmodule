@@ -34,6 +34,18 @@ class ContentScriptOut(BaseModel):
     created_at: datetime
 
 
+class VideoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    content_id: int
+    file_path: str | None
+    status: str
+    error: str | None
+    duration: float | None
+    created_at: datetime
+
+
 class ContentOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -44,3 +56,4 @@ class ContentOut(BaseModel):
     updated_at: datetime
     ideas: list[ContentIdeaOut] = []
     scripts: list[ContentScriptOut] = []
+    videos: list[VideoOut] = []
