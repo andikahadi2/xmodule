@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg[binary]
+pydantic-settings
+jinja2
+python-multipart
+pytest
+httpx
+edge-tts
+Pillow
+faster-whisper

@@ -1,0 +1,62 @@
+{% extends "_base.html" %}
+{% block title %}Affiliate Engine — Products{% endblock %}
+{% block content %}
+<style>
+  .page-header { margin-bottom: 28px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .page-header h1 { font-size: 26px; }
+  .page-header p { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1.4fr 1fr 1fr auto;
+    gap: 12px;
+    align-items: end;
+  }
+  @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+  .table-wrap { overflow-x: auto; margin-top: 20px; }
+</style>
+
+<div class="page-header">
+  <div>
+    <h1>Products</h1>
+    <p>Kelola produk affiliate sebagai sumber konten.</p>
+  </div>
+  <a href="/" class="btn btn-secondary">← Kembali ke Home</a>
+</div>
+
+<div class="card">
+  <form class="form-grid" hx-post="/products" hx-target="#product-rows" hx-swap="outerHTML" hx-on::after-request="this.reset()">
+    <div class="field">
+      <label>Nama produk</label>
+      <input type="text" name="name" placeholder="Botol minum lipat" required>
+    </div>
+    <div class="field">
+      <label>Harga (Rp)</label>
+      <input type="number" name="price" step="0.01" placeholder="35000" required>
+    </div>
+    <div class="field">
+      <label>Affiliate URL</label>
+      <input type="url" name="affiliate_url" placeholder="https://..." required>
+    </div>
+    <div class="field">
+      <label>Kategori</label>
+      <input type="text" name="category" placeholder="opsional">
+    </div>
+    <div class="field">
+      <label>Deskripsi</label>
+      <input type="text" name="description" placeholder="opsional">
+    </div>
+    <div class="field" style="margin-bottom: 16px;">
+      <button type="submit" class="btn btn-primary" style="width: 100%;">+ Tambah</button>
+    </div>
+  </form>
+</div>
+
+<div class="card table-wrap">
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Nama</th><th>Kategori</th><th>Harga</th><th>Link</th><th>Status</th><th></th></tr>
+    </thead>
+    {% include "_product_rows.html" %}
+  </table>
+</div>
+{% endblock %}

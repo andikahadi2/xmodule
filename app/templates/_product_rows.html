@@ -1,0 +1,24 @@
+<tbody id="product-rows">
+{% for p in products %}
+  <tr id="row-{{ p.id }}">
+    <td>#{{ p.id }}</td>
+    <td><strong>{{ p.name }}</strong></td>
+    <td>{% if p.category %}<span class="badge badge-neutral">{{ p.category }}</span>{% else %}<span style="color: var(--text-faint)">—</span>{% endif %}</td>
+    <td>Rp{{ "{:,.0f}".format(p.price).replace(",", ".") }}</td>
+    <td><a href="{{ p.affiliate_url }}" target="_blank" style="color: var(--primary); text-decoration: none;">Lihat link ↗</a></td>
+    <td><span class="badge badge-success">{{ p.status }}</span></td>
+    <td style="text-align: right;">
+      <button class="btn btn-danger" style="padding: 6px 14px; font-size: 13px;"
+              hx-delete="/products/{{ p.id }}" hx-target="#product-rows" hx-swap="outerHTML"
+              hx-confirm="Hapus produk ini?">Hapus</button>
+    </td>
+  </tr>
+{% else %}
+  <tr><td colspan="7">
+    <div class="empty-state">
+      <div style="font-size: 32px; margin-bottom: 8px;">📦</div>
+      <div>Belum ada produk. Tambahkan produk pertamamu di atas.</div>
+    </div>
+  </td></tr>
+{% endfor %}
+</tbody>

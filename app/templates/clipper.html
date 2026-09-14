@@ -1,0 +1,145 @@
+{% extends "_base.html" %}
+{% block title %}Clipper — Content Engine{% endblock %}
+{% block content %}
+<style>
+  .page-header { margin-bottom: 28px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .page-header h1 { font-size: 26px; }
+  .page-header p { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
+
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .dropzone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 28px 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    margin-bottom: 16px;
+  }
+  .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(168, 85, 247, 0.06); }
+  .dropzone .icon { font-size: 28px; margin-bottom: 8px; }
+  .dropzone .filename { font-size: 13px; color: var(--text); margin-top: 8px; word-break: break-all; }
+  .dropzone input[type=file] { display: none; }
+
+  .toggle-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .toggle-row:last-of-type { border-bottom: none; }
+  .toggle-row .label-group { font-size: 14px; }
+  .toggle-row .label-group small { display: block; color: var(--text-faint); font-size: 12px; margin-top: 2px; }
+
+  .switch { position: relative; width: 40px; height: 22px; flex-shrink: 0; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute; inset: 0; background: var(--bg-elevated);
+    border: 1px solid var(--border); border-radius: 999px; cursor: pointer; transition: 0.15s;
+  }
+  .switch .slider::before {
+    content: ''; position: absolute; width: 16px; height: 16px; left: 2px; top: 2px;
+    background: var(--text-muted); border-radius: 50%; transition: 0.15s;
+  }
+  .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); }
+  .switch input:checked + .slider::before { transform: translateX(18px); background: white; }
+
+  .jobs-empty { text-align: center; padding: 60px 24px; color: var(--text-faint); }
+
+  .job-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+  .job-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .job-card-title { font-weight: 600; font-size: 14px; }
+  .job-card-meta { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+
+  .clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; margin-top: 16px; }
+  .clip-item { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-elevated); }
+  .clip-item video { width: 100%; display: block; background: black; aspect-ratio: 9/16; object-fit: contain; }
+  .clip-item-info { padding: 8px 10px; font-size: 12px; color: var(--text-muted); }
+
+  .progress-bar { height: 6px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; margin-top: 10px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--primary)); animation: indeterminate 1.4s infinite; }
+  @keyframes indeterminate {
+    0% { width: 10%; margin-left: 0%; }
+    50% { width: 40%; margin-left: 40%; }
+    100% { width: 10%; margin-left: 90%; }
+  }
+</style>
+
+<div class="page-header">
+  <div>
+    <h1>Clipper</h1>
+    <p>Upload video, sistem potong otomatis + auto-caption.</p>
+  </div>
+  <a href="/" class="btn btn-secondary">← Kembali ke Home</a>
+</div>
+
+<div class="layout">
+  <div class="card">
+    <form id="upload-form" hx-post="/api/clipper/jobs/upload" hx-target="#jobs-list" hx-swap="afterbegin"
+          hx-encoding="multipart/form-data" hx-on::before-request="document.getElementById('upload-btn').disabled = true; document.getElementById('upload-btn').textContent = 'Mengupload...'"
+          hx-on::after-request="this.reset(); document.getElementById('upload-btn').disabled = false; document.getElementById('upload-btn').textContent = 'Upload &amp; Proses'; document.getElementById('drop-filename').textContent = '';">
+
+      <label class="dropzone" id="dropzone" for="file-input">
+        <div class="icon">🎬</div>
+        <div>Klik atau drag video ke sini</div>
+        <div style="font-size: 12px; color: var(--text-faint); margin-top: 4px;">MP4, MOV, MKV, atau WebM</div>
+        <div class="filename" id="drop-filename"></div>
+      </label>
+      <input type="file" id="file-input" name="file" accept=".mp4,.mov,.mkv,.webm" required
+             onchange="document.getElementById('drop-filename').textContent = this.files[0] ? this.files[0].name : '';">
+
+      <div class="field">
+        <label>Potong tiap (detik)</label>
+        <input type="number" name="segment_seconds" value="120" min="5" required>
+      </div>
+
+      <div class="toggle-row">
+        <div class="label-group">
+          Auto-caption
+          <small>Transkripsi suara jadi subtitle otomatis</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" name="auto_caption" value="true" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      <div class="toggle-row">
+        <div class="label-group">
+          Reformat ke 9:16
+          <small>Crop vertikal untuk Reels/TikTok/Shorts</small>
+        </div>
+        <label class="switch">
+          <input type="checkbox" name="reformat_vertical" value="true">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <button type="submit" id="upload-btn" class="btn btn-primary" style="width: 100%; margin-top: 18px;">Upload &amp; Proses</button>
+    </form>
+  </div>
+
+  <div>
+    <div id="jobs-list" hx-get="/api/clipper/jobs/render" hx-trigger="load" hx-swap="innerHTML">
+      <div class="jobs-empty">Memuat riwayat job…</div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const dropzone = document.getElementById('dropzone');
+  ['dragover', 'dragleave', 'drop'].forEach(evt => {
+    dropzone.addEventListener(evt, (e) => {
+      e.preventDefault();
+      dropzone.classList.toggle('dragover', evt === 'dragover');
+    });
+  });
+  dropzone.addEventListener('drop', (e) => {
+    const input = document.getElementById('file-input');
+    if (e.dataTransfer.files.length) {
+      input.files = e.dataTransfer.files;
+      document.getElementById('drop-filename').textContent = e.dataTransfer.files[0].name;
+    }
+  });
+</script>
+{% endblock %}
