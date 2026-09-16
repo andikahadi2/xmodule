@@ -10,6 +10,8 @@ storage/thumbnails/*
 storage/temp/*
 storage/uploads/*
 storage/clips/*
+storage/music/*
+storage/video_ai_clips/*
 !storage/**/.gitkeep
 .pytest_cache/
 *.egg-info/

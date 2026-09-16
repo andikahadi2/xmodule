@@ -7,6 +7,7 @@ from sqlalchemy.pool import StaticPool
 
 import app.clipper.models  # noqa: F401 ensure all tables are registered on Base.metadata
 import app.models  # noqa: F401 ensure all tables are registered on Base.metadata
+import app.video_ai.models  # noqa: F401 ensure all tables are registered on Base.metadata
 from app.core.database import Base
 from app.models.content import Content
 from app.models.product import Product

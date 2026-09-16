@@ -1,0 +1,7 @@
+{% if jobs %}
+  {% for job in jobs %}
+    {% include "_video_ai_job_card.html" %}
+  {% endfor %}
+{% else %}
+  <div class="jobs-empty">Belum ada job. Isi topik di sebelah kiri lalu klik Generate Video.</div>
+{% endif %}

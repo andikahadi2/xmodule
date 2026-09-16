@@ -2,6 +2,14 @@
 {% block title %}Clipper — Content Engine{% endblock %}
 {% block content %}
 <style>
+  {% for font_id, font in subtitle_fonts.items() %}
+  @font-face {
+    font-family: '{{ font.family }}';
+    src: url('/clipper-fonts/{{ font.file }}');
+    font-display: swap;
+  }
+  {% endfor %}
+
   .page-header { margin-bottom: 28px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
   .page-header h1 { font-size: 26px; }
   .page-header p { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
@@ -22,6 +30,18 @@
   .dropzone .icon { font-size: 28px; margin-bottom: 8px; }
   .dropzone .filename { font-size: 13px; color: var(--text); margin-top: 8px; word-break: break-all; }
   .dropzone input[type=file] { display: none; }
+
+  .font-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin: 8px 0 4px; }
+  .font-option {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    gap: 4px; padding: 10px 6px; border: 1px solid var(--border); border-radius: var(--radius-sm);
+    cursor: pointer; text-align: center; transition: border-color 0.15s, background 0.15s;
+  }
+  .font-option:hover { border-color: var(--accent); }
+  .font-option input { position: absolute; opacity: 0; width: 0; height: 0; }
+  .font-option:has(input:checked) { border-color: var(--accent); background: rgba(168, 85, 247, 0.08); }
+  .font-option-preview { font-size: 20px; line-height: 1.2; color: var(--text); }
+  .font-option-label { font-size: 11px; color: var(--text-faint); }
 
   .toggle-row {
     display: flex; align-items: center; justify-content: space-between;
@@ -103,6 +123,19 @@
           <input type="checkbox" name="auto_caption" value="true" checked>
           <span class="slider"></span>
         </label>
+      </div>
+
+      <div class="field">
+        <label>Font subtitle</label>
+        <div class="font-grid">
+          {% for font_id, font in subtitle_fonts.items() %}
+          <label class="font-option" style="font-family: '{{ font.family }}';">
+            <input type="radio" name="subtitle_font" value="{{ font_id }}" {% if font_id == default_subtitle_font %}checked{% endif %}>
+            <span class="font-option-preview">Aa Bb 123</span>
+            <span class="font-option-label">{{ font.label }}</span>
+          </label>
+          {% endfor %}
+        </div>
       </div>
       <div class="toggle-row">
         <div class="label-group">

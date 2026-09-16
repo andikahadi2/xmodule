@@ -3,6 +3,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.clipper.fonts import DEFAULT_SUBTITLE_FONT, FONTS_DIR, font_family
 from app.clipper.models.clip import Clip, ClipJob
 from app.clipper.services.caption_service import transcribe_to_srt
 from app.core.config import settings
@@ -16,6 +17,7 @@ def create_job(
     segment_seconds: int = 120,
     reformat_vertical: bool = False,
     auto_caption: bool = True,
+    subtitle_font: str = DEFAULT_SUBTITLE_FONT,
 ) -> ClipJob:
     job = ClipJob(
         source_file_path=source_file_path,
@@ -23,6 +25,7 @@ def create_job(
         segment_seconds=segment_seconds,
         reformat_vertical=reformat_vertical,
         auto_caption=auto_caption,
+        subtitle_font=subtitle_font,
         status="uploaded",
     )
     db.add(job)
@@ -87,6 +90,8 @@ def process_job(db: Session, job: ClipJob) -> ClipJob:
                 duration_seconds=length,
                 reformat_vertical=job.reformat_vertical,
                 subtitle_path=subtitle_path,
+                subtitle_font_family=font_family(job.subtitle_font) if subtitle_path else None,
+                subtitle_fonts_dir=str(FONTS_DIR) if subtitle_path else None,
                 width=settings.default_video_width,
                 height=settings.default_video_height,
             )

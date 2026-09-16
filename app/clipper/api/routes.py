@@ -6,6 +6,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPExcepti
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.clipper.fonts import DEFAULT_SUBTITLE_FONT
 from app.clipper.models.clip import ClipJob
 from app.clipper.schemas.clip import ClipJobOut
 from app.clipper.services import clip_service
@@ -33,6 +34,7 @@ def upload_job(
     segment_seconds: int = Form(120),
     reformat_vertical: bool = Form(False),
     auto_caption: bool = Form(True),
+    subtitle_font: str = Form(DEFAULT_SUBTITLE_FONT),
     db: Session = Depends(get_db),
 ):
     ext = Path(file.filename or "").suffix.lower()
@@ -53,6 +55,7 @@ def upload_job(
         segment_seconds=segment_seconds,
         reformat_vertical=reformat_vertical,
         auto_caption=auto_caption,
+        subtitle_font=subtitle_font,
     )
 
     background_tasks.add_task(_process_job_in_background, job.id)

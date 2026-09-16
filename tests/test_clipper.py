@@ -5,6 +5,7 @@ from sqlalchemy.pool import StaticPool
 
 import app.clipper.models  # noqa: F401 ensure all tables are registered on Base.metadata
 import app.models  # noqa: F401 ensure all tables are registered on Base.metadata
+import app.video_ai.models  # noqa: F401 ensure all tables are registered on Base.metadata
 from app.clipper.services import clip_service
 from app.core.database import Base
 
@@ -42,6 +43,18 @@ def test_create_job_persists_defaults(db):
     assert job.segment_seconds == 120
     assert job.auto_caption is True
     assert job.reformat_vertical is False
+    assert job.subtitle_font == "anton"
+
+
+def test_create_job_persists_chosen_subtitle_font(db):
+    job = clip_service.create_job(
+        db,
+        source_file_path="/tmp/fake.mp4",
+        original_filename="fake.mp4",
+        subtitle_font="poppins-bold",
+    )
+
+    assert job.subtitle_font == "poppins-bold"
 
 
 def test_process_job_marks_failed_when_source_missing(db):

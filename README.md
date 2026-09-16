@@ -67,11 +67,17 @@ Hanya menerima file upload manual — tidak ada fitur download dari URL/platform
    - `POST /api/contents/videos/{video_id}/publish/{account_id}` — kirim video ke Inbox/Draft
      TikTok akun tsb (bukan auto-publish — user tetap harus buka app TikTok untuk post akhir)
 
-   **Clipper module** (upload & potong video sendiri):
+   **Clipper module** (upload & potong video sendiri), halaman `/clipper`:
    - Upload + proses (async di background): `POST /api/clipper/jobs` (multipart form-data:
      `file`, `segment_seconds` default 120, `reformat_vertical` default false, `auto_caption`
-     default true)
+     default true, `subtitle_font` default `anton` — lihat daftar 10 pilihan di
+     `app/clipper/fonts.py`)
    - Cek status & hasil: `GET /api/clipper/jobs/{job_id}`, `GET /api/clipper/jobs`
+   - Riwayat job (history) tampil otomatis di halaman `/clipper` — semua job tersimpan
+     permanen di DB dan dimuat urut terbaru, lengkap dengan preview video per klip
+   - Font subtitle: 10 pilihan Google Fonts (lisensi OFL) disertakan di `app/clipper/fonts/`,
+     di-burn-in via FFmpeg `subtitles` filter (`force_style=FontName=...` + `fontsdir`), tidak
+     bergantung font yang terpasang di sistem/server
    - Hasil klip tersimpan di `storage/clips/`, subtitle di `storage/temp/`
 
 ## Test

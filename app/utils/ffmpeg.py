@@ -1,4 +1,5 @@
 import subprocess
+from pathlib import Path
 
 from app.core.config import settings
 
@@ -50,6 +51,21 @@ def probe_duration_seconds(path: str, timeout: float = 30.0) -> float:
         raise FFmpegError(f"Could not probe duration for {path}: {result.stderr[-500:]}")
 
 
+def _escape_filter_path(path: str) -> str:
+    return path.replace("\\", "/").replace(":", r"\:")
+
+
+def _subtitles_filter(subtitle_path: str, *, font_family: str | None = None, fonts_dir: str | None = None) -> str:
+    escaped = _escape_filter_path(subtitle_path)
+    options = []
+    if fonts_dir:
+        options.append(f"fontsdir='{_escape_filter_path(fonts_dir)}'")
+    if font_family:
+        options.append(f"force_style='FontName={font_family}'")
+    suffix = f":{':'.join(options)}" if options else ""
+    return f"subtitles='{escaped}'{suffix}"
+
+
 def extract_segment(
     source_path: str,
     output_path: str,
@@ -58,6 +74,8 @@ def extract_segment(
     *,
     reformat_vertical: bool = False,
     subtitle_path: str | None = None,
+    subtitle_font_family: str | None = None,
+    subtitle_fonts_dir: str | None = None,
     width: int = 1080,
     height: int = 1920,
 ) -> None:
@@ -69,14 +87,56 @@ def extract_segment(
             f"scale={width}:{height}:force_original_aspect_ratio=increase,crop={width}:{height}"
         )
     if subtitle_path:
-        escaped = subtitle_path.replace("\\", "/").replace(":", r"\:")
-        video_filters.append(f"subtitles='{escaped}'")
+        video_filters.append(
+            _subtitles_filter(subtitle_path, font_family=subtitle_font_family, fonts_dir=subtitle_fonts_dir)
+        )
 
     if video_filters:
         args += ["-vf", ",".join(video_filters)]
 
     args += ["-c:v", "libx264", "-c:a", "aac", "-pix_fmt", "yuv420p", output_path]
     run(args, timeout=180.0)
+
+
+def concat_video_clips(
+    clip_paths: list[str],
+    output_path: str,
+    *,
+    audio_path: str | None = None,
+    subtitle_path: str | None = None,
+) -> None:
+    if not clip_paths:
+        raise FFmpegError("No clips provided")
+
+    concat_list_path = f"{output_path}.concat.txt"
+    with open(concat_list_path, "w", encoding="utf-8") as f:
+        for path in clip_paths:
+            absolute = str(Path(path).resolve())
+            escaped = absolute.replace("\\", "/").replace("'", "'\\''")
+            f.write(f"file '{escaped}'\n")
+
+    args = ["-f", "concat", "-safe", "0", "-i", concat_list_path]
+    if audio_path:
+        args += ["-stream_loop", "-1", "-i", audio_path]
+
+    video_filters = []
+    if subtitle_path:
+        escaped = subtitle_path.replace("\\", "/").replace(":", r"\:")
+        video_filters.append(f"subtitles='{escaped}'")
+    if video_filters:
+        args += ["-vf", ",".join(video_filters)]
+
+    args += ["-c:v", "libx264", "-pix_fmt", "yuv420p"]
+    if audio_path:
+        args += ["-map", "0:v", "-map", "1:a", "-c:a", "aac", "-shortest"]
+    else:
+        args += ["-c:a", "aac"]
+    args += [output_path]
+
+    try:
+        run(args, timeout=300.0)
+    finally:
+        Path(concat_list_path).unlink(missing_ok=True)
 
 
 FPS = 25

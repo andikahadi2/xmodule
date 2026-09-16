@@ -9,6 +9,7 @@ from app.core.config import settings
 from app.core.database import Base
 from app.models import *  # noqa: F401,F403 register models with Base.metadata
 from app.clipper.models import *  # noqa: F401,F403 register clipper models with Base.metadata
+from app.video_ai.models import *  # noqa: F401,F403 register video_ai models with Base.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

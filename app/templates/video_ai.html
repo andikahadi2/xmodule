@@ -1,0 +1,69 @@
+{% extends "_base.html" %}
+{% block title %}Generate Video AI — Content Engine{% endblock %}
+{% block content %}
+<style>
+  .page-header { margin-bottom: 28px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .page-header h1 { font-size: 26px; }
+  .page-header p { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
+
+  .layout { display: grid; grid-template-columns: 380px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+
+  .jobs-empty { text-align: center; padding: 60px 24px; color: var(--text-faint); }
+
+  .job-card { border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; margin-bottom: 14px; }
+  .job-card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .job-card-title { font-weight: 600; font-size: 14px; }
+  .job-card-meta { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+
+  .clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 16px; }
+  .clip-item { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-elevated); }
+  .clip-item video { width: 100%; display: block; background: black; aspect-ratio: 9/16; object-fit: contain; }
+  .clip-item-info { padding: 6px 8px; font-size: 11px; color: var(--text-muted); }
+
+  .output-video { width: 100%; max-width: 280px; border-radius: var(--radius-sm); display: block; margin-top: 12px; background: black; aspect-ratio: 9/16; object-fit: contain; }
+
+  .progress-bar { height: 6px; background: var(--bg-elevated); border-radius: 999px; overflow: hidden; margin-top: 10px; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--primary)); animation: indeterminate 1.4s infinite; }
+  @keyframes indeterminate {
+    0% { width: 10%; margin-left: 0%; }
+    50% { width: 40%; margin-left: 40%; }
+    100% { width: 10%; margin-left: 90%; }
+  }
+</style>
+
+<div class="page-header">
+  <div>
+    <h1>Generate Video AI</h1>
+    <p>Ambil footage stock gratis (Pexels) sesuai topik, otomatis dirakit jadi satu video vertikal.</p>
+  </div>
+  <a href="/" class="btn btn-secondary">← Kembali ke Home</a>
+</div>
+
+<div class="layout">
+  <div class="card">
+    <form id="generate-form" hx-post="/api/video-ai/jobs/create" hx-target="#jobs-list" hx-swap="afterbegin"
+          hx-on::before-request="document.getElementById('generate-btn').disabled = true; document.getElementById('generate-btn').textContent = 'Memproses...'"
+          hx-on::after-request="this.reset(); document.getElementById('generate-btn').disabled = false; document.getElementById('generate-btn').textContent = 'Generate Video';">
+
+      <div class="field">
+        <label>Topik / kata kunci footage</label>
+        <input type="text" name="query" placeholder="contoh: skincare, kopi, olahraga pagi" required>
+      </div>
+
+      <div class="field">
+        <label>Jumlah footage</label>
+        <input type="number" name="clip_count" value="10" min="1" max="30" required>
+      </div>
+
+      <button type="submit" id="generate-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Generate Video</button>
+    </form>
+  </div>
+
+  <div>
+    <div id="jobs-list" hx-get="/api/video-ai/jobs/render" hx-trigger="load" hx-swap="innerHTML">
+      <div class="jobs-empty">Memuat riwayat job…</div>
+    </div>
+  </div>
+</div>
+{% endblock %}

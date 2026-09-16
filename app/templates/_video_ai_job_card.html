@@ -1,15 +1,11 @@
-<div class="job-card" id="job-{{ job.id }}"
-     {% if job.status in ("uploaded", "processing") %}
-     hx-get="/api/clipper/jobs/{{ job.id }}/render" hx-trigger="load delay:3s" hx-swap="outerHTML"
+<div class="job-card" id="video-ai-job-{{ job.id }}"
+     {% if job.status in ("pending", "processing") %}
+     hx-get="/api/video-ai/jobs/{{ job.id }}/render" hx-trigger="load delay:3s" hx-swap="outerHTML"
      {% endif %}>
   <div class="job-card-head">
     <div>
-      <div class="job-card-title">{{ job.original_filename }}</div>
-      <div class="job-card-meta">
-        Potong tiap {{ job.segment_seconds }}s
-        {% if job.auto_caption %}· auto-caption ({{ job.subtitle_font | font_label }}){% endif %}
-        {% if job.reformat_vertical %}· 9:16{% endif %}
-      </div>
+      <div class="job-card-title">{{ job.query }}</div>
+      <div class="job-card-meta">{{ job.clip_count }} footage</div>
     </div>
     {% if job.status == "completed" %}
       <span class="badge badge-success">Selesai</span>
@@ -24,7 +20,7 @@
     {% endif %}
   </div>
 
-  {% if job.status in ("uploaded", "processing") %}
+  {% if job.status in ("pending", "processing") %}
     <div class="progress-bar"><div class="progress-bar-fill"></div></div>
   {% endif %}
 
@@ -32,18 +28,25 @@
     <div style="margin-top: 10px; font-size: 13px; color: var(--error);">{{ job.error }}</div>
   {% endif %}
 
+  {% if job.output_path %}
+    <video class="output-video" controls preload="metadata" src="{{ job.output_path | storage_url }}"></video>
+    <div class="job-card-meta" style="margin-top: 6px;">
+      {% if job.music_path %}🎵 Musik latar: {{ job.music_path.split('/')[-1].split('\\')[-1] }}{% else %}Tanpa musik latar (storage/music/ kosong){% endif %}
+    </div>
+  {% endif %}
+
   {% if job.clips %}
     <div class="clip-grid">
       {% for clip in job.clips %}
         <div class="clip-item">
           {% if clip.status == "ready" %}
-            <video controls preload="metadata" src="{{ clip.file_path | storage_url }}"></video>
+            <video muted preload="metadata" src="{{ clip.file_path | storage_url }}"></video>
           {% else %}
-            <div style="aspect-ratio: 9/16; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 12px;">
+            <div style="aspect-ratio: 9/16; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 11px;">
               {% if clip.status == "failed" %}Gagal{% else %}Memproses…{% endif %}
             </div>
           {% endif %}
-          <div class="clip-item-info">Part {{ clip.index + 1 }} · {{ "%.0f"|format(clip.end_seconds - clip.start_seconds) }}s</div>
+          <div class="clip-item-info">Footage {{ clip.index + 1 }}</div>
         </div>
       {% endfor %}
     </div>

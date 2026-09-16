@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.clipper.fonts import DEFAULT_SUBTITLE_FONT
 from app.core.database import Base
 from app.models._timestamps import utcnow
 
@@ -16,6 +17,7 @@ class ClipJob(Base):
     segment_seconds: Mapped[int] = mapped_column(Integer, default=120)
     reformat_vertical: Mapped[bool] = mapped_column(Boolean, default=False)
     auto_caption: Mapped[bool] = mapped_column(Boolean, default=True)
+    subtitle_font: Mapped[str] = mapped_column(String(50), default=DEFAULT_SUBTITLE_FONT)
     status: Mapped[str] = mapped_column(String(50), default="uploaded")
     error: Mapped[str | None] = mapped_column(String, default=None)
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
