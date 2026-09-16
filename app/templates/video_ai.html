@@ -43,6 +43,7 @@
 <div class="layout">
   <div class="card">
     <form id="generate-form" hx-post="/api/video-ai/jobs/create" hx-target="#jobs-list" hx-swap="afterbegin"
+          hx-encoding="multipart/form-data"
           hx-on::before-request="document.getElementById('generate-btn').disabled = true; document.getElementById('generate-btn').textContent = 'Memproses...'"
           hx-on::after-request="this.reset(); document.getElementById('generate-btn').disabled = false; document.getElementById('generate-btn').textContent = 'Generate Video';">
 
@@ -54,6 +55,14 @@
       <div class="field">
         <label>Jumlah footage</label>
         <input type="number" name="clip_count" value="10" min="1" max="30" required>
+      </div>
+
+      <div class="field">
+        <label>Musik latar (opsional)</label>
+        <input type="file" name="music_file" accept=".mp3,.m4a,.wav,.aac">
+        <small style="display: block; color: var(--text-faint); font-size: 12px; margin-top: 4px;">
+          Kosongkan untuk pakai musik acak dari storage/music/, atau tanpa musik kalau folder itu kosong.
+        </small>
       </div>
 
       <button type="submit" id="generate-btn" class="btn btn-primary" style="width: 100%; margin-top: 8px;">Generate Video</button>

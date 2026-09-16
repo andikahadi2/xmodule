@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Form, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.video_ai.api.routes import _process_job_in_background
+from app.video_ai.api.routes import _process_job_in_background, _save_uploaded_music
 from app.video_ai.models.job import VideoAiJob
 from app.video_ai.services import video_ai_service
 
@@ -41,9 +41,13 @@ def create_job_html(
     background_tasks: BackgroundTasks,
     query: str = Form(...),
     clip_count: int = Form(10),
+    music_file: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
 ):
-    job = video_ai_service.create_job(db, query=query, clip_count=clip_count)
+    uploaded_music_path = _save_uploaded_music(music_file) if music_file and music_file.filename else None
+    job = video_ai_service.create_job(
+        db, query=query, clip_count=clip_count, uploaded_music_path=uploaded_music_path
+    )
     background_tasks.add_task(_process_job_in_background, job.id)
     return templates.TemplateResponse(request, "_video_ai_job_card.html", {"job": job})
 

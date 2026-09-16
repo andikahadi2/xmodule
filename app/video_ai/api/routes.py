@@ -1,10 +1,12 @@
 import logging
+import uuid
+from pathlib import Path
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.config import settings
 from app.core.database import get_db
 from app.video_ai.models.job import VideoAiJob
 from app.video_ai.schemas.job import VideoAiJobOut
@@ -14,10 +16,21 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/video-ai", tags=["video-ai"])
 
+ALLOWED_AUDIO_EXTENSIONS = {".mp3", ".m4a", ".wav", ".aac"}
 
-class VideoAiJobCreate(BaseModel):
-    query: str = Field(min_length=1, max_length=500)
-    clip_count: int = Field(default=10, ge=1, le=30)
+
+def _save_uploaded_music(file: UploadFile) -> str:
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in ALLOWED_AUDIO_EXTENSIONS:
+        raise HTTPException(status_code=400, detail=f"Unsupported audio type: {ext}")
+
+    uploads_dir = Path(settings.storage_path) / "music" / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    dest = uploads_dir / f"{uuid.uuid4().hex}{ext}"
+    with open(dest, "wb") as f:
+        while chunk := file.file.read(1024 * 1024):
+            f.write(chunk)
+    return str(dest)
 
 
 def _get_job_or_404(db: Session, job_id: int) -> VideoAiJob:
@@ -49,11 +62,16 @@ def _process_job_in_background(job_id: int) -> None:
 
 @router.post("/jobs", response_model=VideoAiJobOut, status_code=201)
 def create_job(
-    payload: VideoAiJobCreate,
     background_tasks: BackgroundTasks,
+    query: str = Form(..., min_length=1, max_length=500),
+    clip_count: int = Form(default=10, ge=1, le=30),
+    music_file: UploadFile | None = File(default=None),
     db: Session = Depends(get_db),
 ):
-    job = video_ai_service.create_job(db, query=payload.query, clip_count=payload.clip_count)
+    uploaded_music_path = _save_uploaded_music(music_file) if music_file and music_file.filename else None
+    job = video_ai_service.create_job(
+        db, query=query, clip_count=clip_count, uploaded_music_path=uploaded_music_path
+    )
     background_tasks.add_task(_process_job_in_background, job.id)
     return job
 

@@ -30,8 +30,12 @@ def _download(url: str, dest: Path, timeout: float = 30.0) -> None:
                 f.write(chunk)
 
 
-def create_job(db: Session, query: str, clip_count: int = 10) -> VideoAiJob:
-    job = VideoAiJob(query=query, clip_count=clip_count, status="pending")
+def create_job(
+    db: Session, query: str, clip_count: int = 10, uploaded_music_path: str | None = None
+) -> VideoAiJob:
+    job = VideoAiJob(
+        query=query, clip_count=clip_count, status="pending", music_path=uploaded_music_path
+    )
     db.add(job)
     db.commit()
     db.refresh(job)
@@ -109,7 +113,7 @@ def process_job(db: Session, job: VideoAiJob) -> VideoAiJob:
         db.refresh(job)
         return job
 
-    music_path = _pick_background_music()
+    music_path = job.music_path or _pick_background_music()
     output_path = videos_dir / f"videoai{job.id}_{uuid.uuid4().hex}.mp4"
     try:
         ffmpeg.concat_video_clips(ready_paths, str(output_path), audio_path=music_path)
