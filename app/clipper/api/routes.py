@@ -18,6 +18,11 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/clipper", tags=["clipper"])
 
 ALLOWED_EXTENSIONS = {".mp4", ".mov", ".mkv", ".webm"}
+MAX_UPLOAD_BYTES = settings.max_upload_size_mb * 1024 * 1024
+
+
+class UploadTooLargeError(Exception):
+    pass
 
 
 def _get_job_or_404(db: Session, job_id: int) -> ClipJob:
@@ -25,6 +30,30 @@ def _get_job_or_404(db: Session, job_id: int) -> ClipJob:
     if job is None:
         raise HTTPException(status_code=404, detail="Clip job not found")
     return job
+
+
+def save_upload(file: UploadFile, ext: str) -> Path:
+    """Stream an uploaded file to storage/uploads, aborting if it exceeds
+    MAX_UPLOAD_BYTES. Raises UploadTooLargeError instead of letting an
+    unbounded upload fill the disk."""
+    uploads_dir = Path(settings.storage_path) / "uploads"
+    uploads_dir.mkdir(parents=True, exist_ok=True)
+    dest = uploads_dir / f"{uuid.uuid4().hex}{ext}"
+
+    total = 0
+    try:
+        with open(dest, "wb") as f:
+            while chunk := file.file.read(1024 * 1024):
+                total += len(chunk)
+                if total > MAX_UPLOAD_BYTES:
+                    raise UploadTooLargeError(
+                        f"File exceeds max upload size of {settings.max_upload_size_mb}MB"
+                    )
+                f.write(chunk)
+    except UploadTooLargeError:
+        dest.unlink(missing_ok=True)
+        raise
+    return dest
 
 
 @router.post("/jobs", response_model=ClipJobOut, status_code=201)
@@ -41,12 +70,10 @@ def upload_job(
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {ext}")
 
-    uploads_dir = Path(settings.storage_path) / "uploads"
-    uploads_dir.mkdir(parents=True, exist_ok=True)
-    dest = uploads_dir / f"{uuid.uuid4().hex}{ext}"
-    with open(dest, "wb") as f:
-        while chunk := file.file.read(1024 * 1024):
-            f.write(chunk)
+    try:
+        dest = save_upload(file, ext)
+    except UploadTooLargeError as exc:
+        raise HTTPException(status_code=413, detail=str(exc)) from exc
 
     job = clip_service.create_job(
         db,

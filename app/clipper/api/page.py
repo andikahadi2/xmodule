@@ -1,4 +1,3 @@
-import uuid
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, Request, UploadFile
@@ -7,7 +6,12 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.clipper.api.routes import ALLOWED_EXTENSIONS, _process_job_in_background
+from app.clipper.api.routes import (
+    ALLOWED_EXTENSIONS,
+    UploadTooLargeError,
+    _process_job_in_background,
+    save_upload,
+)
 from app.clipper.fonts import DEFAULT_SUBTITLE_FONT, SUBTITLE_FONTS
 from app.clipper.models.clip import ClipJob
 from app.clipper.services import clip_service
@@ -67,12 +71,15 @@ def upload_job_html(
             status_code=400,
         )
 
-    uploads_dir = Path(settings.storage_path) / "uploads"
-    uploads_dir.mkdir(parents=True, exist_ok=True)
-    dest = uploads_dir / f"{uuid.uuid4().hex}{ext}"
-    with open(dest, "wb") as f:
-        while chunk := file.file.read(1024 * 1024):
-            f.write(chunk)
+    try:
+        dest = save_upload(file, ext)
+    except UploadTooLargeError as exc:
+        return templates.TemplateResponse(
+            request,
+            "_clip_upload_error.html",
+            {"message": str(exc)},
+            status_code=413,
+        )
 
     job = clip_service.create_job(
         db,

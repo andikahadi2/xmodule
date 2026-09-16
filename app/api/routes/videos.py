@@ -4,6 +4,7 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.errors import upstream_error
 from app.models.content import Content
 from app.models.video import Video
 from app.providers.image import ImageProviderError
@@ -36,7 +37,7 @@ def generate_media(content_id: int, db: Session = Depends(get_db)):
     try:
         assets = media_service.generate_media(db, content)
     except ImageProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise upstream_error(exc, context="Media generation") from exc
     return [{"id": a.id, "file_path": a.file_path, "provider": a.provider} for a in assets]
 
 
@@ -48,7 +49,7 @@ async def generate_audio(content_id: int, db: Session = Depends(get_db)):
     try:
         asset = await audio_service.generate_audio(db, content, content.scripts[-1])
     except TTSProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise upstream_error(exc, context="Audio generation") from exc
     return {"id": asset.id, "file_path": asset.file_path, "duration": asset.duration}
 
 
@@ -125,7 +126,7 @@ def publish_video(video_id: int, account_id: int, db: Session = Depends(get_db))
     try:
         publish_id = social_service.publish_to_account(db, account, video.file_path, caption)
     except SocialMediaProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise upstream_error(exc, context="TikTok publish") from exc
 
     video.status = "published"
     db.commit()

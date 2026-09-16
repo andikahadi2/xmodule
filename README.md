@@ -80,6 +80,31 @@ Hanya menerima file upload manual — tidak ada fitur download dari URL/platform
      bergantung font yang terpasang di sistem/server
    - Hasil klip tersimpan di `storage/clips/`, subtitle di `storage/temp/`
 
+## Keamanan sebelum hosting publik
+
+Aplikasi ini **tidak punya login sama sekali secara default** — dirancang untuk dijalankan di
+localhost saat development. Sebelum host ke internet:
+
+1. **Wajib set `ADMIN_USERNAME` dan `ADMIN_PASSWORD` di `.env`.** Kalau salah satu kosong, seluruh
+   app (termasuk file di `storage/`) bisa diakses siapa saja tanpa password. Begitu keduanya diisi,
+   seluruh app otomatis minta login (HTTP Basic Auth — browser akan munculkan dialog login native).
+2. Set `APP_DEBUG=false` di `.env` produksi.
+3. Set `APP_BASE_URL` ke domain publik dengan `https://` (wajib untuk redirect URI TikTok OAuth).
+4. Jangan jalankan dengan `--reload` di produksi (lihat langkah 4 di atas — itu untuk dev saja).
+5. Jalankan di belakang reverse proxy (nginx/Caddy) dengan TLS; jangan expose uvicorn langsung ke
+   internet.
+6. `MAX_UPLOAD_SIZE_MB` (default 500) membatasi ukuran upload video di Clipper — sesuaikan kalau perlu.
+
+Perlindungan yang sudah ada di kode: HTTP Basic Auth global (`app/core/auth.py`), guard SSRF untuk
+`image_url` produk yang di-fetch server-side (`app/services/media_service.py` — menolak URL yang
+resolve ke IP private/loopback/link-local), batas ukuran upload, dan pesan error dari provider
+eksternal (AI/TikTok) tidak dikirim mentah ke client (`app/core/errors.py` — detail lengkap tetap
+di-log server-side).
+
+Belum ditangani (opsional, tergantung kebutuhan): token OAuth TikTok disimpan plaintext di database
+(lihat komentar `ponytail:` di `app/models/social_account.py`), dan state OAuth in-memory
+(`app/api/routes/social.py`) tidak bertahan lintas restart/multi-worker.
+
 ## Test
 
 ```
@@ -103,6 +128,10 @@ Hanya menerima file upload manual — tidak ada fitur download dari URL/platform
 - `app/utils/ffmpeg.py` — pembungkus subprocess FFmpeg (video generator + probe durasi + extract
   segment, dipakai affiliate engine maupun clipper)
 - `app/utils/subtitle.py` — generate SRT dari script + durasi audio
+- `app/core/auth.py` — HTTP Basic Auth middleware global (aktif kalau `ADMIN_USERNAME`/
+  `ADMIN_PASSWORD` diisi)
+- `app/core/errors.py` — helper untuk error dari provider eksternal (tidak bocorkan detail upstream
+  ke client)
 - `app/templates` — Jinja2 templates
 - `app/clipper/` — module terpisah: model (`ClipJob`, `Clip`), service (`clip_service`,
   `caption_service` pakai faster-whisper), route (`/api/clipper/*`)

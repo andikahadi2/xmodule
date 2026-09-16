@@ -1,3 +1,4 @@
+import logging
 import secrets
 from urllib.parse import urlencode
 
@@ -11,6 +12,8 @@ from app.core.database import get_db
 from app.providers.social.base import SocialMediaProviderError
 from app.schemas.social_account import SocialAccountOut
 from app.services import social_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/social", tags=["social"])
 templates = Jinja2Templates(directory="app/templates")
@@ -61,7 +64,8 @@ def connect(platform: str):
     try:
         url = social_service.get_authorize_url(platform, state, _redirect_uri(platform))
     except SocialMediaProviderError as exc:
-        raise HTTPException(status_code=503, detail=str(exc)) from exc
+        logger.error("Failed to build %s authorize URL: %s", platform, exc)
+        raise HTTPException(status_code=503, detail=f"{platform} is not configured") from exc
 
     return RedirectResponse(url)
 
@@ -83,6 +87,7 @@ def callback(
     try:
         social_service.connect_account(db, platform, code, _redirect_uri(platform))
     except SocialMediaProviderError as exc:
-        return _affiliate_redirect(connect_error=str(exc))
+        logger.error("Failed to connect %s account: %s", platform, exc)
+        return _affiliate_redirect(connect_error="connect_failed")
 
     return _affiliate_redirect(connected="1")

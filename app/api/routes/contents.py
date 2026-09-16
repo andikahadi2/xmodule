@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.errors import upstream_error
 from app.models.content import Content
 from app.providers.ai.base import AIProviderError
 from app.schemas.content import ContentIdeaOut, ContentOut, ContentScriptOut
@@ -36,7 +37,7 @@ def generate_ideas(product_id: int, db: Session = Depends(get_db)):
     try:
         return content_service.generate_content_ideas(db, product)
     except AIProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise upstream_error(exc, context="Content idea generation") from exc
 
 
 @router.post("/{content_id}/generate-script", response_model=ContentScriptOut, status_code=201)
@@ -48,4 +49,4 @@ def generate_script(content_id: int, db: Session = Depends(get_db)):
     try:
         return script_service.generate_script(db, content, selected_idea)
     except AIProviderError as exc:
-        raise HTTPException(status_code=502, detail=str(exc)) from exc
+        raise upstream_error(exc, context="Script generation") from exc

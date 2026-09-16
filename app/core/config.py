@@ -27,9 +27,16 @@ class Settings(BaseSettings):
 
     ffmpeg_path: str = "ffmpeg"
 
+    max_upload_size_mb: int = 500
+
     tiktok_client_key: str = ""
     tiktok_client_secret: str = ""
     app_base_url: str = "http://localhost:8000"
+
+    # ponytail: single shared password for the whole app; move to per-user
+    # accounts if this ever needs more than one operator.
+    admin_username: str = ""
+    admin_password: str = ""
 
 
 settings = Settings()
