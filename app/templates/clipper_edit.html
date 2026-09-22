@@ -7,6 +7,7 @@
   .page-header p { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
 
   .editor-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+  .editor-layout > * { min-width: 0; }
   @media (max-width: 900px) { .editor-layout { grid-template-columns: 1fr; } }
 
   video#preview { width: 100%; max-height: 56vh; background: black; border-radius: var(--radius); display: block; }
@@ -343,6 +344,14 @@
     addSegment(t, clamp(t + 3, 0, DURATION));
   });
 
+  function handleSessionExpired() {
+    saveResult.textContent = 'Sesi habis, mengarahkan ke halaman login…';
+    saveResult.className = 'error';
+    setTimeout(() => {
+      window.location.href = `/login?next=${encodeURIComponent(window.location.pathname)}`;
+    }, 1500);
+  }
+
   async function saveSegments() {
     saveBtn.disabled = true;
     saveResult.textContent = 'Menyimpan…';
@@ -353,6 +362,10 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(segments.map(s => ({ start_seconds: s.start, end_seconds: s.end }))),
       });
+      if (resp.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
         throw new Error(body.detail || `Gagal menyimpan (${resp.status})`);
@@ -375,6 +388,10 @@
     saveResult.className = '';
     try {
       const resp = await fetch(`/api/clipper/jobs/${JOB_ID}/process`, { method: 'POST' });
+      if (resp.status === 401) {
+        handleSessionExpired();
+        return;
+      }
       if (!resp.ok) {
         const body = await resp.json().catch(() => ({}));
         throw new Error(body.detail || `Gagal memproses (${resp.status})`);

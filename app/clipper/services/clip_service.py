@@ -73,7 +73,7 @@ def _render_clip(job: ClipJob, clip: Clip, clips_dir: Path, temp_dir: Path) -> N
             subtitle_path=None,
         )
 
-        if job.auto_caption:
+        if job.auto_caption and ffmpeg.has_audio_stream(str(raw_segment_path)):
             srt_text = transcribe_to_srt(str(raw_segment_path))
             if srt_text.strip():
                 subtitle_path = temp_dir / f"job{job.id}_clip{clip.index}.srt"

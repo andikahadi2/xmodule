@@ -51,6 +51,26 @@ def probe_duration_seconds(path: str, timeout: float = 30.0) -> float:
         raise FFmpegError(f"Could not probe duration for {path}: {result.stderr[-500:]}")
 
 
+def has_audio_stream(path: str, timeout: float = 30.0) -> bool:
+    try:
+        result = subprocess.run(
+            [
+                _ffprobe_path(),
+                "-v", "error",
+                "-select_streams", "a",
+                "-show_entries", "stream=index",
+                "-of", "csv=p=0",
+                path,
+            ],
+            capture_output=True,
+            text=True,
+            timeout=timeout,
+        )
+    except subprocess.TimeoutExpired:
+        return False
+    return bool(result.stdout.strip())
+
+
 def _escape_filter_path(path: str) -> str:
     return path.replace("\\", "/").replace(":", r"\:")
 

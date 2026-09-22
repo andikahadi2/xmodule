@@ -12,7 +12,7 @@ async def _ok(request):
 
 
 def _build_app() -> Starlette:
-    app = Starlette(routes=[Route("/", _ok), Route("/login", _ok)])
+    app = Starlette(routes=[Route("/", _ok), Route("/login", _ok), Route("/api/thing", _ok)])
     app.add_middleware(SessionAuthMiddleware)
     return app
 
@@ -78,5 +78,30 @@ def test_login_path_always_reachable(monkeypatch):
     client = TestClient(_build_app())
 
     resp = client.get("/login")
+
+    assert resp.status_code == 200
+
+
+def test_api_path_without_session_returns_401_json_not_redirect(monkeypatch):
+    """A fetch() call must be able to detect an expired session: if this
+    returned a 303 redirect instead, fetch() would silently follow it and
+    treat the resulting 200 (the login page's HTML) as success."""
+    monkeypatch.setattr(auth_module.settings, "admin_username", "admin")
+    monkeypatch.setattr(auth_module.settings, "admin_password", "secret")
+    client = TestClient(_build_app(), follow_redirects=False)
+
+    resp = client.get("/api/thing")
+
+    assert resp.status_code == 401
+    assert resp.json() == {"detail": "Session expired, please log in again"}
+
+
+def test_api_path_with_valid_session_allowed(monkeypatch):
+    monkeypatch.setattr(auth_module.settings, "admin_username", "admin")
+    monkeypatch.setattr(auth_module.settings, "admin_password", "secret")
+    cookie = make_session_cookie()
+    client = TestClient(_build_app(), cookies={SESSION_COOKIE: cookie})
+
+    resp = client.get("/api/thing")
 
     assert resp.status_code == 200
