@@ -1,0 +1,5 @@
+{% if error %}
+  <div style="color: var(--error); font-size: 13px;">{{ error }}</div>
+{% else %}
+  <div style="color: var(--success); font-size: 13px;">{{ job.clips|length }} segmen tersimpan. Siap diproses.</div>
+{% endif %}

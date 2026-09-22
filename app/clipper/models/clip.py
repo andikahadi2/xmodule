@@ -12,8 +12,10 @@ class ClipJob(Base):
     __tablename__ = "clip_jobs"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    project_id: Mapped[int] = mapped_column(ForeignKey("clipper_projects.id"))
     source_file_path: Mapped[str] = mapped_column(String(1000))
     original_filename: Mapped[str] = mapped_column(String(500))
+    mode: Mapped[str] = mapped_column(String(20), default="auto")
     segment_seconds: Mapped[int] = mapped_column(Integer, default=120)
     reformat_vertical: Mapped[bool] = mapped_column(Boolean, default=False)
     auto_caption: Mapped[bool] = mapped_column(Boolean, default=True)
@@ -23,6 +25,7 @@ class ClipJob(Base):
     created_at: Mapped[datetime] = mapped_column(default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(default=utcnow, onupdate=utcnow)
 
+    project = relationship("Project", back_populates="jobs")
     clips = relationship("Clip", back_populates="job", cascade="all, delete-orphan")
 
 

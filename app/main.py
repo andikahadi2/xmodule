@@ -3,10 +3,10 @@ import logging
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import contents, dashboard, products, social, videos
+from app.api.routes import auth, contents, dashboard, products, social, videos
 from app.clipper.api.page import router as clipper_page_router
 from app.clipper.api.routes import router as clipper_router
-from app.core.auth import BasicAuthMiddleware
+from app.core.auth import SessionAuthMiddleware
 from app.core.config import settings
 from app.video_ai.api.page import router as video_ai_page_router
 from app.video_ai.api.routes import router as video_ai_router
@@ -23,8 +23,9 @@ if not settings.admin_username or not settings.admin_password:
     )
 
 app = FastAPI(title=settings.app_name)
-app.add_middleware(BasicAuthMiddleware)
+app.add_middleware(SessionAuthMiddleware)
 
+app.include_router(auth.router)
 app.include_router(products.router)
 app.include_router(contents.router)
 app.include_router(videos.router)

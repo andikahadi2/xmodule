@@ -22,7 +22,9 @@ class ClipJobOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
+    project_id: int
     original_filename: str
+    mode: str
     segment_seconds: int
     reformat_vertical: bool
     auto_caption: bool
@@ -32,3 +34,16 @@ class ClipJobOut(BaseModel):
     created_at: datetime
     updated_at: datetime
     clips: list[ClipOut] = []
+
+
+class ProjectOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    created_at: datetime
+
+
+class SegmentIn(BaseModel):
+    start_seconds: float
+    end_seconds: float

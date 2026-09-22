@@ -27,19 +27,8 @@
   .module-card:hover {
     transform: translateY(-3px);
     border-color: var(--primary);
-    box-shadow: 0 16px 40px -12px rgba(0,0,0,0.5);
+    box-shadow: var(--shadow);
   }
-  .module-card::before {
-    content: '';
-    position: absolute;
-    inset: -40% -40% auto auto;
-    width: 220px; height: 220px;
-    border-radius: 50%;
-    filter: blur(60px);
-    opacity: 0.5;
-  }
-  .module-card.affiliate::before { background: var(--primary); }
-  .module-card.clipper::before { background: var(--accent); }
 
   .module-icon {
     width: 52px; height: 52px;
@@ -49,8 +38,8 @@
     margin-bottom: 20px;
     position: relative;
   }
-  .module-card.affiliate .module-icon { background: linear-gradient(135deg, var(--primary), var(--primary-dark)); box-shadow: 0 8px 24px -6px var(--primary-glow); }
-  .module-card.clipper .module-icon { background: linear-gradient(135deg, var(--accent), #6d28d9); box-shadow: 0 8px 24px -6px var(--accent-glow); }
+  .module-card.affiliate .module-icon { background: var(--primary); }
+  .module-card.clipper .module-icon { background: var(--accent); }
 
   .module-card h2 { font-size: 20px; margin-bottom: 8px; position: relative; }
   .module-card p { color: var(--text-muted); font-size: 14px; line-height: 1.6; margin: 0 0 20px; position: relative; }

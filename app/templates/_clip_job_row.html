@@ -1,0 +1,62 @@
+<tr id="job-{{ job.id }}"
+    {% if job.status in ("uploaded", "processing") %}
+    hx-get="/api/clipper/jobs/{{ job.id }}/render" hx-trigger="load delay:3s" hx-swap="outerHTML"
+    {% endif %}>
+  <td>
+    <div class="job-card-title">{{ job.original_filename }}</div>
+    <div class="job-card-meta">
+      {% if job.mode == "auto" %}Potong tiap {{ job.segment_seconds }}s{% else %}Manual · {{ job.clips|length }} segmen{% endif %}
+      {% if job.auto_caption %}· auto-caption ({{ job.subtitle_font | font_label }}){% endif %}
+      {% if job.reformat_vertical %}· 9:16{% endif %}
+    </div>
+    {% if job.status in ("failed", "completed_with_errors") and job.error %}
+      <div style="margin-top: 6px; font-size: 12px; color: var(--error);">{{ job.error }}</div>
+    {% endif %}
+
+    {% if job.clips %}
+    <details class="preview-details">
+      <summary class="btn btn-secondary" style="display: inline-flex; padding: 6px 12px; font-size: 13px; margin-top: 8px;">Preview</summary>
+      <div class="clip-grid">
+        {% for clip in job.clips %}
+          <div class="clip-item">
+            {% if clip.status == "ready" %}
+              <video controls preload="metadata" src="{{ clip.file_path | storage_url }}"></video>
+            {% else %}
+              <div style="aspect-ratio: 9/16; display: flex; align-items: center; justify-content: center; color: var(--text-faint); font-size: 12px;">
+                {% if clip.status == "failed" %}Gagal{% else %}Memproses…{% endif %}
+              </div>
+            {% endif %}
+            <div class="clip-item-info">Part {{ clip.index + 1 }} · {{ "%.0f"|format(clip.end_seconds - clip.start_seconds) }}s</div>
+          </div>
+        {% endfor %}
+      </div>
+    </details>
+    {% endif %}
+  </td>
+  <td>{{ job.project.name if job.project else "—" }}</td>
+  <td>{{ "Otomatis" if job.mode == "auto" else "Manual" }}</td>
+  <td>
+    {% if job.status == "completed" %}
+      <span class="badge badge-success">Selesai</span>
+    {% elif job.status == "completed_with_errors" %}
+      <span class="badge badge-warning">Sebagian gagal</span>
+    {% elif job.status == "failed" %}
+      <span class="badge badge-error">Gagal</span>
+    {% elif job.status == "processing" %}
+      <span class="badge badge-info">Memproses…</span>
+    {% elif job.status == "draft" %}
+      <span class="badge badge-neutral">Draft</span>
+    {% else %}
+      <span class="badge badge-neutral">Menunggu</span>
+    {% endif %}
+  </td>
+  <td>{{ job.created_at.strftime("%d %b %Y %H:%M") }}</td>
+  <td style="white-space: nowrap;">
+    {% if job.mode == "manual" and job.status == "draft" %}
+      <a href="/clipper/jobs/{{ job.id }}/edit" class="btn btn-secondary" style="padding: 6px 12px; font-size: 13px;">Edit</a>
+    {% endif %}
+    <button type="button" class="btn btn-danger" style="padding: 6px 12px; font-size: 13px;"
+            hx-delete="/api/clipper/jobs/{{ job.id }}/delete" hx-target="#job-{{ job.id }}" hx-swap="outerHTML"
+            hx-confirm="Hapus &quot;{{ job.original_filename }}&quot;? File video juga akan terhapus permanen.">Hapus</button>
+  </td>
+</tr>

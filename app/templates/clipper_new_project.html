@@ -1,0 +1,28 @@
+{% extends "_base.html" %}
+{% block title %}Project Baru — Clipper{% endblock %}
+{% block content %}
+<style>
+  .page-header { margin-bottom: 20px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .page-header h1 { font-size: 24px; }
+  .page-header p { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
+  .narrow-card { max-width: 420px; }
+</style>
+
+<div class="page-header">
+  <div>
+    <h1>Project Baru</h1>
+    <p>Buat wadah baru untuk mengelompokkan video yang diproses di Clipper.</p>
+  </div>
+  <a href="/clipper" class="btn btn-secondary">← Kembali ke Clipper</a>
+</div>
+
+<div class="card narrow-card">
+  <form method="post" action="/clipper/projects/new">
+    <div class="field">
+      <label>Nama project</label>
+      <input type="text" name="name" placeholder="Contoh: Campaign Ramadan" required autofocus>
+    </div>
+    <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 12px;">Buat Project</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,19 +1,10 @@
-import base64
-
-import pytest
 from starlette.applications import Starlette
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import PlainTextResponse
 from starlette.routing import Route
 from starlette.testclient import TestClient
 
 from app.core import auth as auth_module
-from app.core.auth import BasicAuthMiddleware
-
-
-def _basic_header(username: str, password: str) -> dict:
-    token = base64.b64encode(f"{username}:{password}".encode()).decode()
-    return {"Authorization": f"Basic {token}"}
+from app.core.auth import SESSION_COOKIE, SessionAuthMiddleware, make_session_cookie
 
 
 async def _ok(request):
@@ -21,8 +12,8 @@ async def _ok(request):
 
 
 def _build_app() -> Starlette:
-    app = Starlette(routes=[Route("/", _ok)])
-    app.add_middleware(BasicAuthMiddleware)
+    app = Starlette(routes=[Route("/", _ok), Route("/login", _ok)])
+    app.add_middleware(SessionAuthMiddleware)
     return app
 
 
@@ -36,33 +27,56 @@ def test_no_auth_configured_allows_through(monkeypatch):
     assert resp.status_code == 200
 
 
-def test_missing_credentials_rejected(monkeypatch):
+def test_missing_session_redirects_to_login(monkeypatch):
     monkeypatch.setattr(auth_module.settings, "admin_username", "admin")
     monkeypatch.setattr(auth_module.settings, "admin_password", "secret")
-    client = TestClient(_build_app())
+    client = TestClient(_build_app(), follow_redirects=False)
 
     resp = client.get("/")
 
-    assert resp.status_code == 401
-    assert resp.headers["WWW-Authenticate"].startswith("Basic")
+    assert resp.status_code == 303
+    assert resp.headers["location"].startswith("/login")
 
 
-def test_wrong_credentials_rejected(monkeypatch):
+def test_invalid_session_cookie_rejected(monkeypatch):
     monkeypatch.setattr(auth_module.settings, "admin_username", "admin")
     monkeypatch.setattr(auth_module.settings, "admin_password", "secret")
-    client = TestClient(_build_app())
+    client = TestClient(_build_app(), follow_redirects=False, cookies={SESSION_COOKIE: "garbage"})
 
-    resp = client.get("/", headers=_basic_header("admin", "wrong"))
+    resp = client.get("/")
 
-    assert resp.status_code == 401
+    assert resp.status_code == 303
 
 
-def test_correct_credentials_allowed(monkeypatch):
+def test_valid_session_cookie_allowed(monkeypatch):
     monkeypatch.setattr(auth_module.settings, "admin_username", "admin")
     monkeypatch.setattr(auth_module.settings, "admin_password", "secret")
-    client = TestClient(_build_app())
+    cookie = make_session_cookie()
+    client = TestClient(_build_app(), cookies={SESSION_COOKIE: cookie})
 
-    resp = client.get("/", headers=_basic_header("admin", "secret"))
+    resp = client.get("/")
 
     assert resp.status_code == 200
     assert resp.text == "ok"
+
+
+def test_session_cookie_signed_with_different_secret_rejected(monkeypatch):
+    monkeypatch.setattr(auth_module.settings, "admin_username", "admin")
+    monkeypatch.setattr(auth_module.settings, "admin_password", "secret")
+    cookie = make_session_cookie()
+    monkeypatch.setattr(auth_module.settings, "admin_password", "different-secret")
+    client = TestClient(_build_app(), follow_redirects=False, cookies={SESSION_COOKIE: cookie})
+
+    resp = client.get("/")
+
+    assert resp.status_code == 303
+
+
+def test_login_path_always_reachable(monkeypatch):
+    monkeypatch.setattr(auth_module.settings, "admin_username", "admin")
+    monkeypatch.setattr(auth_module.settings, "admin_password", "secret")
+    client = TestClient(_build_app())
+
+    resp = client.get("/login")
+
+    assert resp.status_code == 200

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Masuk — Content Engine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #faf8f3;
+      --bg-elevated: #f2efe6;
+      --bg-card: #ffffff;
+      --border: #e5e0d5;
+      --text: #292420;
+      --text-muted: #756e63;
+      --text-faint: #a39a8c;
+
+      --primary: #5b6e4f;
+      --primary-dark: #46573c;
+      --accent: #c76a3f;
+
+      --error: #b3402c;
+      --error-bg: #fbeae5;
+
+      --radius-sm: 6px;
+      --radius: 10px;
+      --radius-lg: 14px;
+      --font-display: 'Fraunces', Georgia, serif;
+      --font-body: 'Inter', sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+
+    .login-brand {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      margin-bottom: 28px;
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 20px;
+    }
+    .login-brand .logo-dot {
+      width: 10px; height: 10px; border-radius: 3px;
+      background: var(--accent);
+    }
+
+    .login-card {
+      width: 100%;
+      max-width: 380px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 32px;
+      box-shadow: 0 8px 24px -12px rgba(41, 36, 32, 0.15);
+    }
+
+    h1 {
+      font-family: var(--font-display);
+      letter-spacing: -0.01em;
+      font-weight: 600;
+      margin: 0 0 6px;
+      font-size: 1.5rem;
+    }
+    .subtitle {
+      color: var(--text-muted);
+      margin: 0 0 24px;
+      font-size: 14px;
+    }
+
+    .field { margin-bottom: 16px; }
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    input[type="text"], input[type="password"] {
+      width: 100%;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 11px 12px;
+      font-family: var(--font-body);
+      font-size: 15px;
+      color: var(--text);
+      transition: border-color 0.15s;
+    }
+    input:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+
+    .btn-primary {
+      width: 100%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 15px;
+      padding: 11px 20px;
+      margin-top: 8px;
+      border-radius: var(--radius-sm);
+      border: none;
+      cursor: pointer;
+      background: var(--primary);
+      color: #fff;
+      transition: background 0.15s;
+    }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-primary:active { transform: translateY(1px); }
+
+    .error-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--error-bg);
+      color: var(--error);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 18px;
+    }
+  </style>
+</head>
+<body>
+  <div>
+    <div class="login-brand">
+      <span class="logo-dot"></span>
+      Content Engine
+    </div>
+
+    <div class="login-card">
+      <h1>Masuk</h1>
+      <p class="subtitle">Masukkan kredensial admin untuk melanjutkan.</p>
+
+      {% if error %}
+        <div class="error-banner">⚠️ {{ error }}</div>
+      {% endif %}
+
+      <form method="post" action="/login">
+        <input type="hidden" name="next" value="{{ next }}">
+
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" autocomplete="username" required autofocus>
+        </div>
+
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" autocomplete="current-password" required>
+        </div>
+
+        <button type="submit" class="btn-primary">Masuk</button>
+      </form>
+    </div>
+  </div>
+</body>
+</html>

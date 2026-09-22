@@ -1,0 +1,393 @@
+{% extends "_base.html" %}
+{% block title %}Edit Manual — Clipper{% endblock %}
+{% block content %}
+<style>
+  .page-header { margin-bottom: 20px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .page-header h1 { font-size: 24px; }
+  .page-header p { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
+
+  .editor-layout { display: grid; grid-template-columns: 1fr 320px; gap: 20px; align-items: start; }
+  @media (max-width: 900px) { .editor-layout { grid-template-columns: 1fr; } }
+
+  video#preview { width: 100%; max-height: 56vh; background: black; border-radius: var(--radius); display: block; }
+
+  .toolbar { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+  .toolbar .time { font-size: 13px; color: var(--text-muted); font-variant-numeric: tabular-nums; min-width: 92px; }
+  .toolbar .spacer { flex: 1; }
+  .zoom-row { display: flex; align-items: center; gap: 6px; }
+  .zoom-row button { width: 28px; height: 28px; padding: 0; line-height: 1; font-size: 16px; }
+
+  /* Timeline */
+  .timeline-wrap { margin-top: 18px; }
+  .timeline-scroll { overflow-x: auto; border-radius: var(--radius-sm); }
+  .timeline {
+    position: relative;
+    height: 64px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    user-select: none;
+    min-width: 100%;
+  }
+  .timeline-ruler {
+    position: absolute; inset: 0;
+    background-image: repeating-linear-gradient(to right, var(--border) 0, var(--border) 1px, transparent 1px, transparent 40px);
+    pointer-events: none;
+  }
+  .segment-block {
+    position: absolute;
+    top: 8px; bottom: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--primary));
+    border-radius: 6px;
+    box-shadow: 0 2px 8px -2px var(--accent-glow);
+    cursor: grab;
+    min-width: 8px;
+  }
+  .segment-block:active { cursor: grabbing; }
+  .segment-block.active { outline: 2px solid var(--text); outline-offset: 1px; }
+  .segment-block .seg-label {
+    position: absolute; top: 3px; left: 8px; right: 8px;
+    font-size: 11px; font-weight: 600; color: white;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    pointer-events: none;
+  }
+  .segment-handle {
+    position: absolute; top: 0; bottom: 0; width: 10px;
+    cursor: ew-resize;
+    z-index: 2;
+  }
+  .segment-handle.left { left: -3px; }
+  .segment-handle.right { right: -3px; }
+  .segment-handle::after {
+    content: ''; position: absolute; top: 50%; left: 50%;
+    width: 4px; height: 22px; background: rgba(255,255,255,0.85); border-radius: 2px;
+    transform: translate(-50%, -50%);
+  }
+  .playhead {
+    position: absolute; top: 0; bottom: 0; width: 2px;
+    background: var(--text); z-index: 3; pointer-events: none;
+  }
+  .playhead::before {
+    content: ''; position: absolute; top: -5px; left: 50%;
+    width: 10px; height: 10px; background: var(--text); border-radius: 50%;
+    transform: translateX(-50%);
+  }
+
+  .hint { font-size: 12px; color: var(--text-faint); margin-top: 8px; }
+
+  /* Segment list */
+  .segment-list { margin-top: 16px; }
+  .segment-row {
+    display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 6px; font-size: 13px;
+    cursor: pointer; transition: border-color 0.15s;
+  }
+  .segment-row.active { border-color: var(--accent); }
+  .segment-row .segment-index { color: var(--text-faint); width: 20px; flex-shrink: 0; }
+  .segment-row .segment-range { flex: 1; font-variant-numeric: tabular-nums; }
+  .segment-row button { flex-shrink: 0; }
+
+  .segments-empty { color: var(--text-faint); font-size: 13px; padding: 12px 0; }
+
+  #save-result { margin-top: 10px; font-size: 13px; }
+  #save-result.error { color: var(--error); }
+  #save-result.success { color: var(--success); }
+</style>
+
+<div class="page-header">
+  <div>
+    <h1>Edit Manual — {{ job.original_filename }}</h1>
+    <p>Klik-drag di timeline untuk buat segmen, tarik ujungnya untuk atur durasi. Durasi sumber: {{ "%.0f"|format(duration) }} detik.</p>
+  </div>
+  <a href="/clipper" class="btn btn-secondary">← Kembali ke Clipper</a>
+</div>
+
+<div class="editor-layout">
+  <div class="card">
+    <video id="preview" controls src="{{ job.source_file_path | storage_url }}"></video>
+
+    <div class="toolbar">
+      <span class="time" id="current-time">00:00.0</span>
+      <span class="spacer"></span>
+      <div class="zoom-row">
+        <button type="button" class="btn btn-secondary" onclick="zoomOut()" title="Perkecil timeline">−</button>
+        <button type="button" class="btn btn-secondary" onclick="zoomIn()" title="Perbesar timeline">+</button>
+      </div>
+    </div>
+
+    <div class="timeline-wrap">
+      <div class="timeline-scroll" id="timeline-scroll">
+        <div class="timeline" id="timeline">
+          <div class="timeline-ruler"></div>
+          <div class="playhead" id="playhead" style="left: 0%;"></div>
+        </div>
+      </div>
+      <div class="hint">Klik kosong di timeline: buat segmen 3 detik di titik itu. Drag tengah blok: geser. Drag ujung blok: ubah durasi.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="field" style="margin: 0;">
+      <label>Segmen (<span id="segment-count">0</span>)</label>
+      <div id="segment-list" class="segment-list">
+        <div class="segments-empty" id="segments-empty">Belum ada segmen. Klik di timeline untuk menambah.</div>
+      </div>
+    </div>
+
+    <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 12px;" id="save-btn" disabled onclick="saveSegments()">Simpan Segmen</button>
+    <button type="button" class="btn btn-primary" style="width: 100%; margin-top: 8px;" id="process-btn" disabled onclick="processJob()">Proses Sekarang</button>
+    <div id="save-result"></div>
+  </div>
+</div>
+
+<script>
+  const JOB_ID = {{ job.id }};
+  const DURATION = {{ duration }};
+
+  const video = document.getElementById('preview');
+  const timeline = document.getElementById('timeline');
+  const timelineScroll = document.getElementById('timeline-scroll');
+  const playhead = document.getElementById('playhead');
+  const currentTimeEl = document.getElementById('current-time');
+  const segmentList = document.getElementById('segment-list');
+  const segmentsEmpty = document.getElementById('segments-empty');
+  const segmentCountEl = document.getElementById('segment-count');
+  const saveBtn = document.getElementById('save-btn');
+  const processBtn = document.getElementById('process-btn');
+  const saveResult = document.getElementById('save-result');
+
+  let segments = []; // { start, end, el }
+  let pxPerSecond = 40;
+  let activeIndex = null;
+  let savedSinceEdit = false;
+
+  function fmt(t) {
+    const m = Math.floor(t / 60);
+    const s = (t % 60).toFixed(1).padStart(4, '0');
+    return `${String(m).padStart(2, '0')}:${s}`;
+  }
+
+  function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+  function layoutTimeline() {
+    timeline.style.width = Math.max(DURATION * pxPerSecond, 200) + 'px';
+  }
+
+  function timeToPx(t) { return t * pxPerSecond; }
+  function pxToTime(px) { return clamp(px / pxPerSecond, 0, DURATION); }
+
+  function zoomIn() { pxPerSecond = clamp(pxPerSecond * 1.5, 5, 400); layoutTimeline(); renderSegments(); updatePlayhead(); }
+  function zoomOut() { pxPerSecond = clamp(pxPerSecond / 1.5, 5, 400); layoutTimeline(); renderSegments(); updatePlayhead(); }
+
+  function updatePlayhead() {
+    playhead.style.left = timeToPx(video.currentTime) + 'px';
+    currentTimeEl.textContent = fmt(video.currentTime);
+  }
+
+  video.addEventListener('timeupdate', updatePlayhead);
+  video.addEventListener('loadedmetadata', () => { layoutTimeline(); updatePlayhead(); });
+
+  function markEdited() {
+    savedSinceEdit = false;
+    saveBtn.disabled = segments.length === 0;
+    processBtn.disabled = true;
+    saveResult.textContent = '';
+    saveResult.className = '';
+  }
+
+  function setActive(i) {
+    activeIndex = i;
+    renderSegments();
+  }
+
+  function addSegment(start, end) {
+    start = clamp(start, 0, DURATION);
+    end = clamp(end, 0, DURATION);
+    if (end - start < 0.2) end = clamp(start + 0.2, 0, DURATION);
+    segments.push({ start, end });
+    segments.sort((a, b) => a.start - b.start);
+    activeIndex = segments.findIndex(s => s.start === start && s.end === end);
+    markEdited();
+    renderSegments();
+  }
+
+  function removeSegment(i) {
+    segments.splice(i, 1);
+    activeIndex = null;
+    markEdited();
+    renderSegments();
+  }
+
+  function renderSegments() {
+    timeline.querySelectorAll('.segment-block').forEach(el => el.remove());
+    segmentList.querySelectorAll('.segment-row').forEach(el => el.remove());
+
+    segmentCountEl.textContent = segments.length;
+
+    if (segments.length === 0) {
+      segmentsEmpty.style.display = '';
+    } else {
+      segmentsEmpty.style.display = 'none';
+    }
+
+    segments.forEach((seg, i) => {
+      // Timeline block
+      const block = document.createElement('div');
+      block.className = 'segment-block' + (i === activeIndex ? ' active' : '');
+      block.style.left = timeToPx(seg.start) + 'px';
+      block.style.width = Math.max(timeToPx(seg.end - seg.start), 8) + 'px';
+      block.innerHTML = `
+        <span class="seg-label">#${i + 1}</span>
+        <div class="segment-handle left" data-i="${i}" data-edge="left"></div>
+        <div class="segment-handle right" data-i="${i}" data-edge="right"></div>
+      `;
+      block.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('segment-handle')) return;
+        e.stopPropagation();
+        setActive(i);
+        startDragMove(e, i);
+      });
+      timeline.appendChild(block);
+
+      // Sidebar row
+      const row = document.createElement('div');
+      row.className = 'segment-row' + (i === activeIndex ? ' active' : '');
+      row.innerHTML = `
+        <span class="segment-index">#${i + 1}</span>
+        <span class="segment-range">${fmt(seg.start)} → ${fmt(seg.end)} (${(seg.end - seg.start).toFixed(1)}s)</span>
+        <button type="button" class="btn btn-secondary" data-remove="${i}">Hapus</button>
+      `;
+      row.addEventListener('click', (e) => {
+        if (e.target.closest('button')) return;
+        setActive(i);
+        video.currentTime = seg.start;
+      });
+      row.querySelector('[data-remove]').addEventListener('click', (e) => {
+        e.stopPropagation();
+        removeSegment(i);
+      });
+      segmentList.appendChild(row);
+    });
+
+    timeline.querySelectorAll('.segment-handle').forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+        const i = parseInt(handle.dataset.i, 10);
+        const edge = handle.dataset.edge;
+        setActive(i);
+        startDragResize(e, i, edge);
+      });
+    });
+  }
+
+  function startDragMove(e, i) {
+    const seg = segments[i];
+    const startX = e.clientX;
+    const origStart = seg.start;
+    const origEnd = seg.end;
+    const length = origEnd - origStart;
+
+    function onMove(ev) {
+      const deltaT = (ev.clientX - startX) / pxPerSecond;
+      let newStart = clamp(origStart + deltaT, 0, DURATION - length);
+      seg.start = newStart;
+      seg.end = newStart + length;
+      renderSegments();
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      markEdited();
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function startDragResize(e, i, edge) {
+    const seg = segments[i];
+    const startX = e.clientX;
+    const origStart = seg.start;
+    const origEnd = seg.end;
+
+    function onMove(ev) {
+      const deltaT = (ev.clientX - startX) / pxPerSecond;
+      if (edge === 'left') {
+        seg.start = clamp(origStart + deltaT, 0, seg.end - 0.2);
+      } else {
+        seg.end = clamp(origEnd + deltaT, seg.start + 0.2, DURATION);
+      }
+      renderSegments();
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      segments.sort((a, b) => a.start - b.start);
+      markEdited();
+    }
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  // Click on empty timeline: seek, or create a 3s segment if not dragging
+  let timelineMouseDownX = null;
+  timeline.addEventListener('mousedown', (e) => {
+    if (e.target !== timeline && e.target.className !== 'timeline-ruler') return;
+    timelineMouseDownX = e.clientX;
+  });
+  timeline.addEventListener('click', (e) => {
+    if (e.target !== timeline && e.target.className !== 'timeline-ruler') return;
+    const rect = timeline.getBoundingClientRect();
+    const t = pxToTime(e.clientX - rect.left + timelineScroll.scrollLeft);
+    video.currentTime = t;
+    addSegment(t, clamp(t + 3, 0, DURATION));
+  });
+
+  async function saveSegments() {
+    saveBtn.disabled = true;
+    saveResult.textContent = 'Menyimpan…';
+    saveResult.className = '';
+    try {
+      const resp = await fetch(`/api/clipper/jobs/${JOB_ID}/segments`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(segments.map(s => ({ start_seconds: s.start, end_seconds: s.end }))),
+      });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        throw new Error(body.detail || `Gagal menyimpan (${resp.status})`);
+      }
+      savedSinceEdit = true;
+      saveResult.textContent = 'Segmen tersimpan.';
+      saveResult.className = 'success';
+      processBtn.disabled = false;
+    } catch (err) {
+      saveResult.textContent = err.message;
+      saveResult.className = 'error';
+      saveBtn.disabled = false;
+    }
+  }
+
+  async function processJob() {
+    if (!savedSinceEdit) return;
+    processBtn.disabled = true;
+    saveResult.textContent = 'Memproses…';
+    saveResult.className = '';
+    try {
+      const resp = await fetch(`/api/clipper/jobs/${JOB_ID}/process`, { method: 'POST' });
+      if (!resp.ok) {
+        const body = await resp.json().catch(() => ({}));
+        throw new Error(body.detail || `Gagal memproses (${resp.status})`);
+      }
+      window.location.href = '/clipper';
+    } catch (err) {
+      saveResult.textContent = err.message;
+      saveResult.className = 'error';
+      processBtn.disabled = false;
+    }
+  }
+
+  layoutTimeline();
+  renderSegments();
+</script>
+{% endblock %}

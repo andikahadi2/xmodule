@@ -1,5 +1,9 @@
 # Affiliate Content Engine
 
+> **Baru pertama kali install?** Ikuti [INSTALL.md](INSTALL.md) — panduan setup langkah demi
+> langkah untuk pembeli/pemakai baru. README ini dokumentasi teknis untuk developer yang mau
+> mengubah/mengembangkan kodenya. Lisensi pemakaian: [LICENSE.txt](LICENSE.txt).
+
 Phase 1: project setup, PostgreSQL, Product CRUD, dashboard sederhana.
 Phase 2: AI provider abstraction (OpenRouter, Ollama), Content Idea Generator, Script Generator.
 Phase 3: Image provider (Pexels/local), TTS (Edge TTS), FFmpeg video generator, subtitle (SRT) —
@@ -87,7 +91,7 @@ localhost saat development. Sebelum host ke internet:
 
 1. **Wajib set `ADMIN_USERNAME` dan `ADMIN_PASSWORD` di `.env`.** Kalau salah satu kosong, seluruh
    app (termasuk file di `storage/`) bisa diakses siapa saja tanpa password. Begitu keduanya diisi,
-   seluruh app otomatis minta login (HTTP Basic Auth — browser akan munculkan dialog login native).
+   seluruh app otomatis minta login lewat halaman `/login` (session cookie, bukan popup browser).
 2. Set `APP_DEBUG=false` di `.env` produksi.
 3. Set `APP_BASE_URL` ke domain publik dengan `https://` (wajib untuk redirect URI TikTok OAuth).
 4. Jangan jalankan dengan `--reload` di produksi (lihat langkah 4 di atas — itu untuk dev saja).
@@ -95,11 +99,12 @@ localhost saat development. Sebelum host ke internet:
    internet.
 6. `MAX_UPLOAD_SIZE_MB` (default 500) membatasi ukuran upload video di Clipper — sesuaikan kalau perlu.
 
-Perlindungan yang sudah ada di kode: HTTP Basic Auth global (`app/core/auth.py`), guard SSRF untuk
-`image_url` produk yang di-fetch server-side (`app/services/media_service.py` — menolak URL yang
-resolve ke IP private/loopback/link-local), batas ukuran upload, dan pesan error dari provider
-eksternal (AI/TikTok) tidak dikirim mentah ke client (`app/core/errors.py` — detail lengkap tetap
-di-log server-side).
+Perlindungan yang sudah ada di kode: login berbasis session cookie ter-signed HMAC, bukan HTTP
+Basic Auth (`app/core/auth.py` + halaman `app/templates/login.html`, route di
+`app/api/routes/auth.py`), guard SSRF untuk `image_url` produk yang di-fetch server-side
+(`app/services/media_service.py` — menolak URL yang resolve ke IP private/loopback/link-local),
+batas ukuran upload, dan pesan error dari provider eksternal (AI/TikTok) tidak dikirim mentah ke
+client (`app/core/errors.py` — detail lengkap tetap di-log server-side).
 
 Belum ditangani (opsional, tergantung kebutuhan): token OAuth TikTok disimpan plaintext di database
 (lihat komentar `ponytail:` di `app/models/social_account.py`), dan state OAuth in-memory
@@ -128,8 +133,8 @@ Belum ditangani (opsional, tergantung kebutuhan): token OAuth TikTok disimpan pl
 - `app/utils/ffmpeg.py` — pembungkus subprocess FFmpeg (video generator + probe durasi + extract
   segment, dipakai affiliate engine maupun clipper)
 - `app/utils/subtitle.py` — generate SRT dari script + durasi audio
-- `app/core/auth.py` — HTTP Basic Auth middleware global (aktif kalau `ADMIN_USERNAME`/
-  `ADMIN_PASSWORD` diisi)
+- `app/core/auth.py` — session-cookie auth middleware global, redirect ke `/login` (aktif kalau
+  `ADMIN_USERNAME`/`ADMIN_PASSWORD` diisi); route login/logout di `app/api/routes/auth.py`
 - `app/core/errors.py` — helper untuk error dari provider eksternal (tidak bocorkan detail upstream
   ke client)
 - `app/templates` — Jinja2 templates

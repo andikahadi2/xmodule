@@ -1,0 +1,59 @@
+AFFILIATE CONTENT ENGINE — COMMERCIAL SOURCE CODE LICENSE
+
+Copyright (c) 2026. All rights reserved.
+
+This software and its source code (the "Software") are licensed, not sold.
+By purchasing, downloading, or using the Software, the buyer ("Licensee")
+agrees to the following terms:
+
+1. GRANT OF LICENSE
+   The Licensee is granted a single-use, non-exclusive, non-transferable
+   license to install, run, and modify the Software for their own internal
+   business purposes.
+
+2. RESTRICTIONS
+   The Licensee may NOT, under any circumstances:
+   a. Resell, sublicense, redistribute, or otherwise transfer the Software
+      (in original or modified form) to any third party, whether for
+      payment or free of charge.
+   b. Publish the Software, in whole or in part, on any public code
+      repository, marketplace, or file-sharing platform.
+   c. Use the Software to build a competing product that is itself sold
+      or licensed as source code.
+   d. Remove or alter this license notice or any copyright notices
+      contained in the Software.
+
+3. WHAT IS ALLOWED
+   The Licensee MAY:
+   a. Modify the Software freely for their own use.
+   b. Deploy the Software to run their own business, product, or service
+      (e.g. an internal tool or a product offered to their own end users
+      via a hosted application, provided the Software's SOURCE CODE
+      itself is not distributed to those end users).
+   c. Create backups of the Software for their own use.
+
+4. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM,
+   DAMAGES, OR OTHER LIABILITY ARISING FROM THE USE OF THE SOFTWARE.
+
+5. THIRD-PARTY SERVICES AND CREDENTIALS
+   The Software integrates with third-party services (including but not
+   limited to Pexels, OpenRouter, Ollama, and TikTok). The Licensee is
+   solely responsible for obtaining their own API keys/credentials for
+   these services and for complying with each service's own terms of use.
+
+6. TERMINATION
+   This license terminates automatically if the Licensee breaches any of
+   the restrictions in Section 2. Upon termination, the Licensee must
+   cease all use of the Software and destroy all copies in their
+   possession.
+
+7. GOVERNING LAW
+   This license shall be governed by the laws of the Republic of
+   Indonesia, without regard to its conflict of law provisions.
+
+For licensing questions, contact the seller directly through the channel
+where this Software was purchased.

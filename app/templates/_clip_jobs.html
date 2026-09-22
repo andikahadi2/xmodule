@@ -1,10 +1,24 @@
 {% if not jobs %}
   <div class="jobs-empty">
     <div style="font-size: 32px; margin-bottom: 8px;">🎞️</div>
-    <div>Belum ada video yang diproses. Upload video di panel kiri untuk mulai.</div>
+    <div>Belum ada video yang diproses. Upload video untuk mulai.</div>
   </div>
 {% else %}
-  {% for job in jobs %}
-    {% include "_clip_job_card.html" %}
-  {% endfor %}
+  <table>
+    <thead>
+      <tr>
+        <th>Nama file</th>
+        <th>Project</th>
+        <th>Mode</th>
+        <th>Status</th>
+        <th>Tanggal Dibuat</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody id="jobs-tbody">
+      {% for job in jobs %}
+        {% include "_clip_job_row.html" %}
+      {% endfor %}
+    </tbody>
+  </table>
 {% endif %}

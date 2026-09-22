@@ -1,0 +1,40 @@
+{% extends "_base.html" %}
+{% block title %}History — Clipper{% endblock %}
+{% block content %}
+<style>
+  .page-header { margin-bottom: 28px; display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+  .page-header h1 { font-size: 26px; }
+  .page-header p { color: var(--text-muted); margin: 6px 0 0; font-size: 14px; }
+
+  .jobs-empty { text-align: center; padding: 60px 24px; color: var(--text-faint); }
+
+  .job-card-title { font-weight: 600; font-size: 14px; }
+  .job-card-meta { font-size: 12px; color: var(--text-faint); margin-top: 4px; }
+
+  .card { overflow-x: auto; }
+  table { min-width: 640px; }
+
+  .preview-details { margin-top: 8px; }
+  .preview-details summary { list-style: none; cursor: pointer; }
+  .preview-details summary::-webkit-details-marker { display: none; }
+
+  .clip-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-top: 10px; }
+  .clip-item { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-elevated); }
+  .clip-item video { width: 100%; display: block; background: black; aspect-ratio: 9/16; object-fit: contain; }
+  .clip-item-info { padding: 8px 10px; font-size: 12px; color: var(--text-muted); }
+</style>
+
+<div class="page-header">
+  <div>
+    <h1>History</h1>
+    <p>Semua video yang pernah diproses di Clipper.</p>
+  </div>
+  <a href="/clipper" class="btn btn-primary">+ Upload Video Baru</a>
+</div>
+
+<div class="card">
+  <div id="jobs-list" hx-get="/api/clipper/jobs/render" hx-trigger="load" hx-swap="innerHTML">
+    <div class="jobs-empty">Memuat riwayat job…</div>
+  </div>
+</div>
+{% endblock %}
